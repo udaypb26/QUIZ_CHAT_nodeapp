@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+
+<title>Quiz chat</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script> 
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+<link href = "https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css"
+   rel = "stylesheet">
+
+<style type="text/css">
+	
+body,
+textarea,
+input{
+
+
+	font:13px "Trebuchet MS", sans-serif;
+}
+
+.chat{
+
+	max-width: 300px;
+}
+.chat-messages,
+.chat textarea,
+.chat name{
+
+
+	border:1px solid;
+}
+.chat-messages{
+
+	width: 300px;
+	height: 300px;
+	overflow-y:scroll; 
+}
+.chat textarea{
+
+	width:300px; 
+}
+</style>
+
+<script>
+
+var socket_1;
+
+document.addEventListener('DOMContentLoaded', function(){
+
+
+
+
+try{
+
+	var socket=io.connect('http://127.0.0.1:8011');
+	socket_1=socket;
+
+}catch(e){console.log(e);}
+
+//-----starting the quiz:
+
+$('#start_quiz').on('click',function(){
+
+socket.emit('start_quiz');
+
+
+
+});
+
+//submission of name:
+
+$('#username_form').on('submit',function(e){
+	//---prevent the page from loading
+	e.preventDefault();
+
+
+	var username=document.getElementById('username').value;
+	if(username!=undefined){
+socket.emit('new user',username);
+$('#userFormArea').hide();
+}
+});
+
+
+
+ 
+if(socket!=undefined ){
+
+	console.log('ok!!');
+}
+socket.on('already Online!',function(){
+
+	alert('It seems you are already online!- Resume your dashboard from that browser window/tab itself! ');
+	
+
+});
+
+
+socket.on('register first',function(){
+
+var r=confirm('register first!');
+if(r==true){
+	$('#contained').hide();
+	$('#register').show();
+	socket.disconnect();
+}
+
+});
+
+//---update the users
+socket.on('get users',function(data){
+var html='';
+console.log(data);
+$('#online_users').empty();
+for(i=0;i<data.length;i++){
+
+
+
+     $('#online_users').append(
+     	$('<p/>')
+     	.text(data[i])
+     	);
+      
+}
+
+
+});
+  //------------------
+
+$('#start').on('click',function(e){
+e.preventDefault();
+if($('#userFormArea').is(':visible')){
+
+	alert('fill your username first');
+}
+else{
+var request=new XMLHttpRequest();
+request.open('GET','/get_questions');
+var i;
+request.onload=function(){
+
+	//getting response from the server and appending to the web page
+var d=JSON.parse(request.responseText);
+console.log(d[0]);
+
+var id="question";
+var option_1;
+var option_2;
+var option_3;
+var option_4;
+var quest;
+var hidden;
+for(i=0;i<d.length;i++){
+	var j=i+1;
+	var new_str="#"+id+j;  
+	                             //addition of string with number will give 
+		option_1=d[i].optionA;
+		option_2=d[i].optionB;
+		option_3=d[i].optionC;
+		option_4=d[i].optionD;
+		quest=d[i].ques;
+		hidden=d[i].hidden;
+
+		$(new_str).show();
+		$(new_str).find('#question_main').html(quest);
+		$(new_str).find('#option_a').html(option_1);
+		$(new_str).find('#option_b').html(option_2);
+		$(new_str).find('#option_c').html(option_3);
+		$(new_str).find('#option_d').html(option_4);	
+		$(new_str).find('#hidden').html(hidden);
+	}
+
+};
+
+request.send();
+}
+});
+
+
+
+
+$("#droppable").on('keydown',function(event){
+var send_data=$(this).html();
+
+
+if(event.which===13){
+
+	socket.emit('input',{data:send_data})
+}
+
+});
+
+
+
+});
+//sending questions!!!!:
+
+function send_the_question(){
+	
+
+	var question_no=$('#question_to_be_sent').html();
+	$(question_no).show();
+	$(question_no).find('#hidden').show();
+	var hidden=$(question_no).find('#hidden').html();
+	$(question_no).hide();
+	$('#hidden').hide();
+	console.log(hidden);
+	socket_1.emit('sending question',{data:hidden});
+	
+
+}
+
+
+</script>
+</head>
+
+
+<body>
+	
+
+<div class="container" align="center">
+
+<table width="100%" id="contained" border="true" >
+	
+<tr >
+<td width="50%">
+
+<div id="userFormArea">
+
+<form  id="username_form">
+<input type="text" id="username" placeholder="enter your username:" required>
+<input type="submit">
+</form>
+
+</div>
+<br>
+<h4>Online Users:</h4><br>
+<div id="online_users">
+
+
+
+
+</div>
+
+<button type="button" id="start" class="waves-effect waves-light btn" value="" >start</button><br>
+
+<!-- append questions inside this div-->
+<div id="questions">
+<div class="drag card blue-grey darken-1" id="question1" style="display:none;width: 600px;height:100px;position: relative;padding-top:0px;color:white">
+
+Question:<label id="question_main">dghj</label><br>
+<form id="question1_options">
+<input type="radio" value="" class="options" id="optionA" /><label id="option_a"></label>
+<input class="options" type="radio" value="" id="optionB" /><label id="option_b"></label>
+<input type="radio"  class="options" value="" id="optionC" /><label id="option_c"></label>
+<input type="radio" value="" class="options" id="optionD" /><label id="option_d"></label>
+<p id="hidden" hidden></p>
+</form>
+</div>
+
+<div class="drag card blue-grey darken-1" id="question2" style="display:none;width: 600px;height:100px;position: relative;padding-top:0px;color:white">
+Question:<label id="question_main">dghj</label><br>
+<form id="question2_options">
+<input type="radio" value="" id="optionA" /><label id="option_a"></label>
+<input type="radio" value="" id="optionB" /><label id="option_b"></label>
+<input type="radio" value="" id="optionC" /><label id="option_c"></label>
+<input type="radio" value="" id="optionD" /><label id="option_d"></label>
+<p id="hidden" hidden></p>
+</form>
+</div>
+
+<div class="drag card blue-grey darken-1" id="question3" style="width: 600px;height:100px;display:none;position: relative;padding-top:0px;color:white">
+Question:<label id="question_main">dghj</label><br>
+<form id="question3_options">
+<input type="radio" value="" id="optionA" /><label id="option_a"></label>
+<input type="radio" value="" id="optionB" /><label id="option_b"></label>
+<input type="radio" value="" id="optionC" /><label id="option_c"></label>
+<input type="radio" value="" id="optionD" /><label id="option_d"></label>
+<p id="hidden" hidden></p>
+</form>
+</div>
+
+<div class="drag card blue-grey darken-1" id="question4" style="width: 600px;height:100px;display:none;position: relative;padding-top:0px;color:white">
+Question:<label id="question_main">dghj</label><br>
+<form id="question4_options">
+<input type="radio" class="with-gap" name="optionA" value="" id="optionA" /><label for="optionA" id="option_a"></label><br>
+<input type="radio" class="with-gap" value="" name="optionA" id="optionB" /><label for="optionB" id="option_b"></label><br>
+<input type="radio" class="with-gap" value=""  name="optionA" id="optionC" /><label for="optionC" id="option_c"></label><br>
+<input type="radio" class="with-gap" value="" name="optionA" id="optionD" /><label for="optionD" id="option_d"></label><br>
+<p id="hidden" hidden></p>
+</form>
+</div>
+</div>
+
+
+</td>
+
+<td>
+
+<div  class="chat">
+<input placeholder="enter your name">
+
+<div class="chat-messages"></div>
+
+<div id="droppable" class="container" align="center" style="width:100%;height: 200px;border-style: dashed;"  >Drag and drop any question!</div>
+
+</div>
+
+</td>
+
+</tr>
+
+
+</table>
+
+<div class="container" align="center" id="register" style="display:none;">
+<form action="/quiz_chat" method="get">
+
+<input type="submit" class="waves-effect waves-light btn" value="go to registration page" >
+</form>
+</div>
+
+
+<script type="text/javascript" src="http://127.0.0.1:8011/socket.io/socket.io.js"></script>
+
+<script src = "https://code.jquery.com/jquery-1.10.2.js"></script>
+<script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script type="text/javascript" src="js/materialize.js"></script> 
+<script type="text/javascript" src="js/materialize.min.js"></script> 
+
+
+<script type="text/javascript">
+	
+function undo(){
+
+var id=$('#question_to_be_sent').html();
+
+$(id).show();
+flag=true;
+$('#droppable').empty();
+$('#droppable').show();
+$('#droppable').append(
+$('<p/>')
+.text('Drag and drop any question!')
+	);
+//$( '#droppable').removeClass( "ui-state-highlight" ) ;
+}
+
+$( ".drag" ).draggable({
+
+	containment:"#contained",
+	revert:true
+});
+var flag=true;
+$("#droppable").droppable(
+
+{ 
+
+ drop: function( event, ui ) {
+                  
+ 				if(flag==false){
+                  alert('cannot send Multiple Questions at a time!')	
+                  }
+                  else{
+                  $( this ).addClass( "ui-state-highlight" ) ;
+                  
+
+                  var id=ui.draggable.attr('id');
+
+                  var pass="#"+id;
+
+                  var a=$(pass).find('p').html();
+                 // $(pass).empty();
+                  $(pass).hide();
+
+
+                  $(this).html(a);
+                  $(this).empty();
+
+                  $(this).append(
+
+                  	$('<button/>')
+                  	.attr({class:"waves-effect waves-light btn",id:"send_questions",onclick:"send_the_question()"})
+                  	.text('Send')
+                  	);
+                 $(this).append(
+                 	$('<p/>')
+                 	.attr({id:"question_to_be_sent"})
+                 	.text(pass)
+                 	);
+                 $(this).append(
+
+                  	$('<input/>')
+                  	.attr({class:"waves-effect waves-light btn",id:"Undo",type:"button",onclick:"undo()",value:"UNDO!"})
+                  	
+                  	);
+                  if($(this).find('button').is(':visible')){
+
+                  	flag=false;
+                  }
+                  
+
+                 }
+
+               }
+ }
+	);
+
+
+</script>
+</body>
+
+</html>

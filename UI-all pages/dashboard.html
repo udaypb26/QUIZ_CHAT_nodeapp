@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+
+<title>Quiz chat</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script> 
+<script type="text/javascript" src="js/materialize.js"></script> 
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<link href = "https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css"
+   rel = "stylesheet">
+
+<style type="text/css">
+	
+body,
+textarea,
+input{
+
+
+	font:13px "Trebuchet MS", sans-serif;
+}
+
+.chat{
+
+	max-width: 300px;
+}
+.chat-messages,
+.chat textarea,
+.chat name{
+
+
+	border:1px solid;
+}
+.chat-messages{
+
+	width: 300px;
+	height: 300px;
+	overflow-y:scroll; 
+}
+.chat textarea{
+
+	width:300px; 
+}
+</style>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function(){
+
+var getNode=function(s){
+
+	return document.querySelector(s);
+},
+textarea=getNode('.chat textarea'),
+chatName=getNode('.chat-name');
+
+try{
+
+	var socket=io.connect('http://127.0.0.1:8011');
+	
+
+}catch(e){console.log(e);}
+
+
+if(socket!=undefined ){
+
+	console.log('ok!!');
+}
+
+$("#droppable").on('keydown',function(event){
+var send_data=$(this).html();
+
+
+if(event.which===13){
+
+	socket.emit('input',{data:send_data})
+}
+
+});
+
+
+});
+
+</script>
+</head>
+
+
+<body>
+	
+
+<div class="container" align="center">
+
+<table width="100%" id="contained" border="true" >
+	
+<tr >
+<td width="50%">
+
+
+<button onclick="start_quiz()">Start!</button>
+<div class="drag" id="question1" style="border-style: double;width: 200px;height:50px;position: relative;padding-top:0px"> 
+
+<p id="question">sth</p>
+
+</div>
+
+
+</td>
+
+<td>
+
+<div  class="chat">
+<input placeholder="enter your name">
+
+<div class="chat-messages"></div>
+
+<textarea id="droppable" readonly="true" placeholder="drag and drop a question" ></textarea>
+
+</div>
+
+</td>
+
+</tr>
+
+
+</table>
+
+</div>
+
+
+<script type="text/javascript" src="http://127.0.0.1:8011/socket.io/socket.io.js"></script>
+
+<script src = "https://code.jquery.com/jquery-1.10.2.js"></script>
+<script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+
+
+
+<script type="text/javascript">
+	
+
+$( ".drag" ).draggable({
+
+	containment:"#contained"
+});
+$("#droppable").droppable(
+
+{ 
+
+ drop: function( event, ui ) {
+                  $( this )
+                  .addClass( "ui-state-highlight" ) ;
+
+                  var id=ui.draggable.attr('id');
+
+                  var pass="#"+id;
+
+                  var a=$(pass).find('p').html();
+                  $(pass).empty();
+                  $(pass).hide();
+
+                  $(this).html(a);
+                 
+
+                  
+
+                 
+
+               }
+ }
+	);
+
+</script>
+</body>
+
+</html>
