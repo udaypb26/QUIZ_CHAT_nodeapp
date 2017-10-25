@@ -57,6 +57,7 @@ app.post('/user',function(req,res){
 					"games_played":null
 				}}},{upsert:true},function(err,result){
 
+
 					
 		console.log("inserted/updated the name %s",username);
 	
@@ -89,6 +90,7 @@ var col=db.collection('messages');
 		UpdateUsername();
 				connections.splice(connections.indexOf(socket),1);
 		console.log('Number of connected users are : %s',connections.length);
+		client.emit('check_connected',{data:socket.username,number:connections.length});
 	});
 
 //new user----------
@@ -99,6 +101,7 @@ console.log(data);
 var i=0;
 var flag=true;
 socket.username=data;
+
 col.findOne({'users.username':data},function(err,item){
 
 
@@ -106,6 +109,7 @@ if(item==null)
 {
 
 	client.emit('register first');
+
 
 }
 else{
@@ -146,11 +150,37 @@ function foo(req,res){
 socket.on('sending question',function(data,callback){
 
 			console.log(data);
-			console.log('received the question!!')
+			var i=0;
+			console.log('received the question!!');
+			 
+			
+			col_1.find().toArray(function(err,data1){
+
+				if(!err){
+					for(i=0;i<data1.length;i++){
+						if(data1.hidden_id==data){
+						client.emit('challenge',{data:data1[i]});
+						break;
+					}
+
+				}
+			}
+			});        //sending the question number so that it can be displayed
 });
 
 
+socket.on('started',function(data,callback){
 
+
+console.log(data.data);
+if(connections.length<=1){
+	client.emit('started',"no");
+}
+else{
+client.emit('started',data.data);
+}
+
+});
 //send questions to the front end
 app.get('/get_questions',function(req,res){
 col_1.find().toArray(function(err,data){

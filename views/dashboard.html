@@ -64,6 +64,16 @@ try{
 
 }catch(e){console.log(e);}
 
+$('.modal').modal();
+//started  game modal settings :
+
+	$('#started').modal({
+		dismissible:false,
+		opacity:.6
+
+
+	});
+
 //-----starting the quiz:
 
 $('#start_quiz').on('click',function(){
@@ -74,6 +84,21 @@ socket.emit('start_quiz');
 
 });
 
+
+socket.on("check_connected",function(data){
+
+	
+
+	if($('#start').attr('disabled',true) && data.number<=1){
+
+		alert("All users Disconnected-- Loading your page again!");
+		location.reload();
+
+	}
+	else if(data.number>1){
+		alert("One user disconnected- "+data.data+" disconnected!")
+	}
+});
 //submission of name:
 
 $('#username_form').on('submit',function(e){
@@ -82,9 +107,12 @@ $('#username_form').on('submit',function(e){
 
 
 	var username=document.getElementById('username').value;
+	
+
 	if(username!=undefined){
 socket.emit('new user',username);
 $('#userFormArea').hide();
+$('#user').html(username);
 }
 });
 
@@ -121,18 +149,93 @@ console.log(data);
 $('#online_users').empty();
 for(i=0;i<data.length;i++){
 
-
-
-     $('#online_users').append(
+	
+	
+   
+    	 $('#online_users').append(
      	$('<p/>')
      	.text(data[i])
      	);
+      	
       
 }
 
 
 });
-  //------------------
+  //------------------when a user starts a game
+  function fillmodal(data){
+
+  	$('#started').append(
+
+  		$('<h2/>')
+                  	.attr({style:'color:black;font-weight:bold',id:"intro1"})
+                  	.text(data)
+  	);
+  	$('#started').append(
+
+  		$('<h4/>')
+                  	.attr({style:'color:teal;',id:"intro2"})
+                  	.text("Has started a new Quiz, You cannot close this window until the game is Over. Still if you want to quit please feel free to cloe the browser tab/window")
+  	);
+  	$('#loading').show();
+setTimeout(quiz_start,10000);
+  }
+
+
+  function quiz_start(){
+
+  	$('#intro1').hide();
+  	$('#intro2').hide();
+
+  	
+
+
+
+  }
+socket.on('started',function(data){
+
+	var user=$('#user').html();
+	
+	if(data=="no"){
+		alert("No users Online- Try again later");
+	}
+	
+	
+	
+	else { 
+
+		if(data!=user){
+
+		$('#started').modal('open');
+		console.log(data);
+		fillmodal(data);
+
+	}
+}
+
+
+
+});
+
+//main challenge started
+socket.on('challenge',function(data){
+
+	var temp_data=JSON.parse(data);
+	console.log(data);
+	alert('challemge start!');
+$('#quiz_running').show();
+	$('#loading').fadeOut(1000);
+	$('#question').html(data.ques);
+	$('#optA').html(data.optionA);
+	$('#optB').html(data.optionB);
+	$('#optC').html(data.optionC);
+	$('#optD').html(data.optionD);
+
+
+
+
+});
+
 
 $('#start').on('click',function(e){
 e.preventDefault();
@@ -144,11 +247,13 @@ else{
 var request=new XMLHttpRequest();
 request.open('GET','/get_questions');
 var i;
+socket.emit('started',{data:$('#user').html()});
 request.onload=function(){
 
 	//getting response from the server and appending to the web page
 var d=JSON.parse(request.responseText);
 console.log(d[0]);
+
 
 var id="question";
 var option_1;
@@ -166,7 +271,7 @@ for(i=0;i<d.length;i++){
 		option_3=d[i].optionC;
 		option_4=d[i].optionD;
 		quest=d[i].ques;
-		hidden=d[i].hidden;
+		hidden=d[i].hidden_id;
 
 		$(new_str).show();
 		$(new_str).find('#question_main').html(quest);
@@ -176,10 +281,14 @@ for(i=0;i<d.length;i++){
 		$(new_str).find('#option_d').html(option_4);	
 		$(new_str).find('#hidden').html(hidden);
 	}
+	
 
 };
 
 request.send();
+$(this).attr("disabled",true);
+
+
 }
 });
 
@@ -200,20 +309,35 @@ if(event.which===13){
 
 
 });
-//sending questions!!!!:
+//sending questions to server so that it can be sent to all the users!!!!:
 
-function send_the_question(){
+function send_ques(){
+
+	
+	
+	var question_no=localStorage.getItem('send_ques');
+	alert(question_no);
+	
+	$('#status').html('Question Sent');
+	
+	
 	
 
-	var question_no=$('#question_to_be_sent').html();
-	$(question_no).show();
-	$(question_no).find('#hidden').show();
-	var hidden=$(question_no).find('#hidden').html();
-	$(question_no).hide();
-	$('#hidden').hide();
-	console.log(hidden);
-	socket_1.emit('sending question',{data:hidden});
 	
+	socket_1.emit('sending question',{data:question_no});
+
+	//resetting everything after sending the question
+var id=localStorage.getItem('id_of_ques');
+localStorage.removeItem('id_of_ques');
+localStorage.removeItem('send_ques');
+$(id).empty();
+flag=true;
+$('#droppable').empty();
+$('#droppable').show();
+$('#droppable').append(
+$('<p/>')
+.text('Drag and drop any question!')
+	);
 
 }
 
@@ -226,7 +350,7 @@ function send_the_question(){
 	
 
 <div class="container" align="center">
-
+<h2 id="user" style="color:teal;font-weight:bold"></h2>
 <table width="100%" id="contained" border="true" >
 	
 <tr >
@@ -253,7 +377,7 @@ function send_the_question(){
 
 <!-- append questions inside this div-->
 <div id="questions">
-<div class="drag card blue-grey darken-1" id="question1" style="display:none;width: 600px;height:100px;position: relative;padding-top:0px;color:white">
+<div class="drag card blue-grey darken-1" id="question1" style="display:none;width: 50%;height:30%;position: relative;padding-top:0px;color:white">
 
 Question:<label id="question_main">dghj</label><br>
 <form id="question1_options">
@@ -265,7 +389,7 @@ Question:<label id="question_main">dghj</label><br>
 </form>
 </div>
 
-<div class="drag card blue-grey darken-1" id="question2" style="display:none;width: 600px;height:100px;position: relative;padding-top:0px;color:white">
+<div class="drag card blue-grey darken-1" id="question2" style="display:none;width: 50%;height:30%;position: relative;padding-top:0px;color:white">
 Question:<label id="question_main">dghj</label><br>
 <form id="question2_options">
 <input type="radio" value="" id="optionA" /><label id="option_a"></label>
@@ -276,7 +400,7 @@ Question:<label id="question_main">dghj</label><br>
 </form>
 </div>
 
-<div class="drag card blue-grey darken-1" id="question3" style="width: 600px;height:100px;display:none;position: relative;padding-top:0px;color:white">
+<div class="drag card blue-grey darken-1" id="question3" style="width: 50%;height:30%;display:none;position: relative;padding-top:0px;color:white">
 Question:<label id="question_main">dghj</label><br>
 <form id="question3_options">
 <input type="radio" value="" id="optionA" /><label id="option_a"></label>
@@ -287,7 +411,7 @@ Question:<label id="question_main">dghj</label><br>
 </form>
 </div>
 
-<div class="drag card blue-grey darken-1" id="question4" style="width: 600px;height:100px;display:none;position: relative;padding-top:0px;color:white">
+<div class="drag card blue-grey darken-1" id="question4" style="width: 50%;height:30%;display:none;position: relative;padding-top:0px;color:white">
 Question:<label id="question_main">dghj</label><br>
 <form id="question4_options">
 <input type="radio" class="with-gap" name="optionA" value="" id="optionA" /><label for="optionA" id="option_a"></label><br>
@@ -307,7 +431,7 @@ Question:<label id="question_main">dghj</label><br>
 <div  class="chat">
 <input placeholder="enter your name">
 
-<div class="chat-messages"></div>
+<div class="chat-messages"><h3 id="status" style="color:teal;vertical-align: center"></h3></div>
 
 <div id="droppable" class="container" align="center" style="width:100%;height: 200px;border-style: dashed;"  >Drag and drop any question!</div>
 
@@ -320,11 +444,36 @@ Question:<label id="question_main">dghj</label><br>
 
 </table>
 
+
+<!--Modal for game start-->
+
+<div id="started" class="modal">
+    <div class="modal-content">
+      
+
+      <img  id="loading" src="images/loading-gif-13.gif" width="10%" height="10%" style="display: none">
+
+      <div id="quiz_running" style="display: none">
+
+      <form id="question_sent">
+      <p id="question"></p>
+      <br>
+      <input type="radio" name="ques" id="A" value="A"><label for="A" id="optA"></label><br>
+      <input type="radio" name="ques" id="B" value="B"><label for="B" id="optB"></label><br>
+      <input type="radio" name="ques" id="C" value="C"><label for="C" id="optC"></label><br>
+      <input type="radio" name="ques" id="D" value="D"><label for="D" id="optD"></label><br>
+      <button type="button" class="waves-effect waves-light btn" id="answer">Submit</button>
+      </form>
+      </div>
+    </div>
+    </div>
+
 <div class="container" align="center" id="register" style="display:none;">
 <form action="/quiz_chat" method="get">
 
 <input type="submit" class="waves-effect waves-light btn" value="go to registration page" >
 </form>
+<
 </div>
 
 
@@ -338,10 +487,13 @@ Question:<label id="question_main">dghj</label><br>
 
 <script type="text/javascript">
 	
+
+
 function undo(){
 
-var id=$('#question_to_be_sent').html();
-
+var id=localStorage.getItem('id_of_ques');
+localStorage.removeItem('id_of_ques');
+localStorage.removeItem('send_ques');
 $(id).show();
 flag=true;
 $('#droppable').empty();
@@ -358,7 +510,9 @@ $( ".drag" ).draggable({
 	containment:"#contained",
 	revert:true
 });
+
 var flag=true;
+
 $("#droppable").droppable(
 
 { 
@@ -366,7 +520,7 @@ $("#droppable").droppable(
  drop: function( event, ui ) {
                   
  				if(flag==false){
-                  alert('cannot send Multiple Questions at a time!')	
+                  alert('cannot send Multiple Questions at a time!')	;
                   }
                   else{
                   $( this ).addClass( "ui-state-highlight" ) ;
@@ -375,32 +529,44 @@ $("#droppable").droppable(
                   var id=ui.draggable.attr('id');
 
                   var pass="#"+id;
+                 
+                  var question_number=$(pass).find('#hidden').html();
+                 //$(pass).empty();
+                 //storing the id of the dropped question in localstorage of the browser
+                 if(localStorage){
+                localStorage.setItem('id_of_ques',pass);
+                localStorage.setItem('send_ques',question_number);
+            }
 
-                  var a=$(pass).find('p').html();
-                 // $(pass).empty();
                   $(pass).hide();
 
 
-                  $(this).html(a);
+                  
                   $(this).empty();
 
                   $(this).append(
 
                   	$('<button/>')
-                  	.attr({class:"waves-effect waves-light btn",id:"send_questions",onclick:"send_the_question()"})
+                  	.attr({class:"waves-effect waves-light btn",id:"send_questions",type:"button",onClick:"send_ques()"})
                   	.text('Send')
                   	);
-                 $(this).append(
-                 	$('<p/>')
-                 	.attr({id:"question_to_be_sent"})
-                 	.text(pass)
-                 	);
+                   $(this).append(
+                   	$('<br>')
+                   	);
+                   $(this).append(
+                   	$('<br>')
+                   	);
+                   $(this).append(
+                   	$('<br>')
+                   	);
+                 //undo button
                  $(this).append(
 
                   	$('<input/>')
                   	.attr({class:"waves-effect waves-light btn",id:"Undo",type:"button",onclick:"undo()",value:"UNDO!"})
                   	
                   	);
+
                   if($(this).find('button').is(':visible')){
 
                   	flag=false;
